@@ -71,6 +71,22 @@ func TestOpenExisting(t *testing.T) {
 	fileCount(dir, 1, t)
 }
 
+func TestWithHelperThatTooLong(t *testing.T) {
+	megabyte = 2
+	dir := makeTempDir("logs", t)
+	defer os.RemoveAll(dir)
+	l := &Logger{
+		Filename: logFile(dir),
+		MaxSize:  5,
+	}
+	defer l.Close()
+
+	l.Info("testing testing testing")
+	l.Error("error test error test")
+	_, err := os.Stat(logFile(dir))
+	assert(os.IsNotExist(err), t, "File exists, but should not have been created")
+}
+
 func TestWriteTooLong(t *testing.T) {
 	currentTime = fakeTime
 	megabyte = 1
