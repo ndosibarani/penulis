@@ -3,7 +3,7 @@
 // Note that this is v2.0 of lumberjack, and should be imported using gopkg.in
 // thusly:
 //
-//   import "gopkg.in/natefinch/lumberjack.v2"
+//	import "gopkg.in/natefinch/lumberjack.v2"
 //
 // The package name remains simply lumberjack, and the code resides at
 // https://github.com/natefinch/lumberjack under the v2.0 branch.
@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -66,7 +67,7 @@ var _ io.WriteCloser = (*Logger)(nil)
 // `/var/log/foo/server.log`, a backup created at 6:30pm on Nov 11 2016 would
 // use the filename `/var/log/foo/server-2016-11-04T18-30-00.000.log`
 //
-// Cleaning Up Old Log Files
+// # Cleaning Up Old Log Files
 //
 // Whenever a new logfile gets created, old log files may be deleted.  The most
 // recent files according to the encoded timestamp will be retained, up to a
@@ -128,6 +129,11 @@ var (
 	megabyte = 1024 * 1024
 )
 
+var (
+	infoPrefix  = currentTime().Format("2006/01/02 15:04:05.000000") + " [INFO] "
+	errorPrefix = currentTime().Format("2006/01/02 15:04:05.000000") + " [ERROR] "
+)
+
 // Write implements io.Writer.  If a write would cause the log file to be larger
 // than MaxSize, the file is closed, renamed to include a timestamp of the
 // current time, and a new log file is created using the original log file name.
@@ -159,6 +165,30 @@ func (l *Logger) Write(p []byte) (n int, err error) {
 	l.size += int64(n)
 
 	return n, err
+}
+
+// writeToFile is a helper function to use Write method so it can be use
+// as shortcut to Info and Error methods
+func (l *Logger) writeToFile(message []byte) {
+	size, err := l.Write(message)
+	if err != nil {
+		log.Println(err)
+	}
+	l.size += int64(size)
+}
+
+// Info is a shortcut to Write method to which appending "[INFO]" at
+// the beggining of log message line
+func (l *Logger) Info(message string) {
+	bytes := []byte(infoPrefix + message + "\n")
+	l.writeToFile(bytes)
+}
+
+// Error is a shortcut to Write method to which appending "[ERROR]" at
+// the beggining of log message line
+func (l *Logger) Error(message string) {
+	bytes := []byte(errorPrefix + message + "\n")
+	l.writeToFile(bytes)
 }
 
 // Close implements io.Closer, and closes the current logfile.
